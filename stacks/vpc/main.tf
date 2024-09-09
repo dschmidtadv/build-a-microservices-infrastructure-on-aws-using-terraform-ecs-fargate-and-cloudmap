@@ -1,22 +1,22 @@
 terraform {
   backend "s3" {
-    bucket         = "fgms-infra"
+    bucket         = "-infra"
     key            = "vpc.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "terraform_lock"
+    region         = "us-east-1"
+    //dynamodb_table = "terraform_lock"
   }
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "3.73.0"
+      version = ">= 3.0"
     }
   }
 }
 
 
 provider "aws" {
-  region  = "eu-west-1"
-  profile = "<YOUR AWS PROFILE NAME>"
+  region  = "us-east-1"
+  profile = "default"
 }
 
 
@@ -26,7 +26,7 @@ module "vpc" {
   name = "fgms-vpc"
   cidr = "10.0.0.0/16"
 
-  azs             = ["eu-west-1a", "eu-west-1b"]
+  azs             = ["us-east-1a", "us-east-1b"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 

@@ -1,22 +1,22 @@
 terraform {
   backend "s3" {
-    bucket         = "fgms-infra"
-    key            = "services-due.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "terraform_lock"
+    bucket         = "fgtf-infra"
+    key            = "services-db.tfstate"
+    region         = "us-east-1"
+    //dynamodb_table = "terraform_lock"
   }
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "3.73.0"
+      version = ">= 3.0"
     }
   }
 }
 
 
 provider "aws" {
-  region  = "eu-west-1"
-  profile = "<YOUR AWS PROFILE NAME>"
+  region  = "us-east-1"
+  profile = "default"
 }
 
 
@@ -24,43 +24,49 @@ provider "aws" {
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
-    bucket = "fgms-infra"
+    bucket = "fgtf-infra"
     key    = "vpc.tfstate"
-    region = "eu-west-1"
+    region = "us-east-1"
   }
 }
 
 data "terraform_remote_state" "dns" {
   backend = "s3"
   config = {
-    bucket = "fgms-infra"
+    bucket = "fgtf-infra"
     key    = "dns.tfstate"
-    region = "eu-west-1"
+    region = "us-east-1"
   }
 }
 
 data "terraform_remote_state" "alb" {
   backend = "s3"
   config = {
-    bucket = "fgms-infra"
+    bucket = "fgtf-infra"
     key    = "alb.tfstate"
-    region = "eu-west-1"
+    region = "us-east-1"
   }
 }
 
 data "terraform_remote_state" "ecs_cluster" {
   backend = "s3"
   config = {
-    bucket = "fgms-infra"
+    bucket = "fgtf-infra"
     key    = "ecs.tfstate"
-    region = "eu-west-1"
+    region = "us-east-1"
   }
 }
 
 
-resource "aws_iam_policy" "fgms_due_task_role_policy" {
-  name        = "fgms_due_task_role_policy"
-  description = "fgms due task role policy"
+resource "aws_cloudwatch_log_group" "fgms_log_group" {
+  name = "/ecs/fgms_log_group_db"
+
+}
+
+
+resource "aws_iam_policy" "fgms_db_task_role_policy" {
+  name        = "fgms_db_task_role_policy"
+  description = "fgms db task role policy"
 
   policy = jsonencode(
     {
@@ -84,8 +90,8 @@ resource "aws_iam_policy" "fgms_due_task_role_policy" {
 }
 
 
-resource "aws_iam_role" "fgms_due_task_role" {
-  name = "fgms_due_task_role"
+resource "aws_iam_role" "fgms_db_task_role" {
+  name = "fgms_db_task_role"
 
   # Terraform's "jsonencode" function converts a
   # Terraform expression result to valid JSON syntax.
@@ -108,27 +114,35 @@ resource "aws_iam_role" "fgms_due_task_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "test-attach" {
-  role       = aws_iam_role.fgms_due_task_role.name
-  policy_arn = aws_iam_policy.fgms_due_task_role_policy.arn
+  role       = aws_iam_role.fgms_db_task_role.name
+  policy_arn = aws_iam_policy.fgms_db_task_role_policy.arn
 }
 
 
-resource "aws_ecs_task_definition" "fgms_due_td" {
-  family                   = "fgms_due_td"
+resource "aws_ecs_task_definition" "fgms_db_td" {
+  family                   = "fgms_db_td"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn       = aws_iam_role.fgms_due_task_role.arn
+  execution_role_arn       = aws_iam_role.fgms_db_task_role.arn
 
   container_definitions = jsonencode(
     [
       {
         cpu : 256,
-        image : "248581660709.dkr.ecr.eu-west-1.amazonaws.com/fgms-due:v1",
+        image : "211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-db:v1",
         memory : 512,
-        name : "fgms-due",
+        name : "fgms-db",
         networkMode : "awsvpc",
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            awslogs-group         = aws_cloudwatch_log_group.fgms_log_group.name
+            awslogs-region        = "us-east-1"
+            awslogs-stream-prefix = "nginx"
+          }
+        },
         portMappings : [
           {
             containerPort : 3000,
@@ -140,25 +154,25 @@ resource "aws_ecs_task_definition" "fgms_due_td" {
   )
 }
 
-resource "aws_ecs_service" "fgms_due_td_service" {
-  name            = "fgms_due_td_service"
+resource "aws_ecs_service" "fgms_db_td_service" {
+  name            = "fgms_db_td_service"
   cluster         = data.terraform_remote_state.ecs_cluster.outputs.fgms_ecs_cluster_id
-  task_definition = aws_ecs_task_definition.fgms_due_td.arn
+  task_definition = aws_ecs_task_definition.fgms_db_td.arn
   desired_count   = "1"
   launch_type     = "FARGATE"
 
   network_configuration {
-    security_groups = ["${aws_security_group.ecs_tasks_sg_due.id}"]
+    security_groups = ["${aws_security_group.ecs_tasks_sg_db.id}"]
     subnets         = ["${data.terraform_remote_state.vpc.outputs.fgms_private_subnets_ids[0]}"]
   }
 
   service_registries {
-    registry_arn = aws_service_discovery_service.fgms_due_service.arn
+    registry_arn = aws_service_discovery_service.fgms_db_service.arn
   }
 }
 
-resource "aws_security_group" "ecs_tasks_sg_due" {
-  name        = "ecs_tasks_sg_due"
+resource "aws_security_group" "ecs_tasks_sg_db" {
+  name        = "ecs_tasks_sg_db"
   description = "allow inbound access from the ALB only"
   vpc_id      = data.terraform_remote_state.vpc.outputs.fgms_vpc_id
 
@@ -185,8 +199,9 @@ resource "aws_security_group" "ecs_tasks_sg_due" {
 }
 
 
-resource "aws_service_discovery_service" "fgms_due_service" {
-  name = var.fgms_due_service_namespace
+
+resource "aws_service_discovery_service" "fgms_db_service" {
+  name = var.fgms_db_service_namespace
 
   dns_config {
     namespace_id = data.terraform_remote_state.dns.outputs.fgms_dns_discovery_id

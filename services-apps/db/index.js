@@ -6,7 +6,7 @@ const port = 3000
 //https://dummyjson.com/products/1
 app.get('/', (req, res) => {
   res.json({
-    msg: "Hello world! (from tre)",
+    msg: "Hello world! (from db)",
   })
 })
 app.get('/healthcheck', (req, res) => {

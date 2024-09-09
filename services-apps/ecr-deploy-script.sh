@@ -1,29 +1,30 @@
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 211125583596.dkr.ecr.us-east-1.amazonaws.com
 
 
 
-docker build -t uno ./uno
-# docker buildx build --platform=linux/amd64 -t uno ./uno        !!In case you use apple m1 chip use this command instead of the first!!
-docker tag uno <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-uno:v1
-docker push <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-uno:v1
+//docker build -t web ./web
+docker buildx build --platform=linux/amd64 -t web ./web     
+docker tag web 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-web:v1
+docker push 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-web:v1
 
-aws ecs update-service --cluster fgms_ecs_cluster --service fgms_uno_td_service --force-new-deployment
-
-
-
-docker build -t due ./due
-# docker buildx build --platform=linux/amd64 -t due ./due        !!In case you use apple m1 chip use this command instead of the first!!
-docker tag due <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-due:v1
-docker push <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-due:v1
-
-aws ecs update-service --cluster fgms_ecs_cluster --service fgms_due_td_service --force-new-deployment
+aws ecs update-service --cluster fgms_ecs_cluster --service fgms_web_td_service --force-new-deployment
 
 
 
-docker build -t tre ./tre
-# docker buildx build --platform=linux/amd64 -t tre ./tre        !!In case you use apple m1 chip use this command instead of the first!!docker tag tre <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-tre:v1
-docker push <YOUR AWS ACCOUNT ID>.dkr.ecr.eu-west-1.amazonaws.com/fgms-tre:v1
+//docker build -t php ./php
+docker buildx build --platform=linux/amd64 -t php ./php        !!In case you use apple m1 chip use this command instead of the first!!
+docker tag php 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-php:v1
+docker push 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-php:v1
 
-aws ecs update-service --cluster fgms_ecs_cluster --service fgms_tre_td_service --force-new-deployment
+aws ecs update-service --cluster fgms_ecs_cluster --service fgms_php_td_service --force-new-deployment
+
+
+
+//docker build -t db ./db
+docker buildx build --platform=linux/amd64 -t db ./db        !!In case you use apple m1 chip use this command instead of the first!!
+docker tag db 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-db:v1
+docker push 211125583596.dkr.ecr.us-east-1.amazonaws.com/fgms-db:v1
+
+aws ecs update-service --cluster fgms_ecs_cluster --service fgms_db_td_service --force-new-deployment
 
 

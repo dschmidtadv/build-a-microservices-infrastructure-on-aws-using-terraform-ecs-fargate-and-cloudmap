@@ -1,34 +1,34 @@
 terraform {
   backend "s3" {
-    bucket         = "fgms-infra"
+    bucket         = "fgtf-infra"
     key            = "ecr.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "terraform_lock"
+    region         = "us-east-1"
+    //dynamodb_table = "terraform_lock"
   }
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "3.73.0"
+      version = ">= 3.0"
     }
   }
 }
 
 
 provider "aws" {
-  region  = "eu-west-1"
-  profile = "<YOUR AWS PROFILE NAME>"
+  region  = "us-east-1"
+  profile = "default"
 }
 
 
 
-resource "aws_ecr_repository" "fgms-uno" {
-  name = "fgms-uno"
+resource "aws_ecr_repository" "fgms-web" {
+  name = "fgms-web"
 }
 
-resource "aws_ecr_repository" "fgms-due" {
-  name = "fgms-due"
+resource "aws_ecr_repository" "fgms-php" {
+  name = "fgms-php"
 }
 
-resource "aws_ecr_repository" "fgms-tre" {
-  name = "fgms-tre"
+resource "aws_ecr_repository" "fgms-db" {
+  name = "fgms-db"
 }
